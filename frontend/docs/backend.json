@@ -1,0 +1,182 @@
+{
+  "entities": {
+    "PlayerProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PlayerProfile",
+      "type": "object",
+      "description": "Represents a player's profile within the Sportlight application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the PlayerProfile entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:1 PlayerProfile)"
+        },
+        "personalInformation": {
+          "type": "string",
+          "description": "Personal details of the player, such as name, age, contact information."
+        },
+        "achievements": {
+          "type": "string",
+          "description": "List of achievements and awards the player has received."
+        },
+        "skillVideos": {
+          "type": "string",
+          "description": "Links or references to videos showcasing the player's skills."
+        },
+        "sport": {
+          "type": "string",
+          "description": "The sport the player specializes in."
+        },
+        "skillLevel": {
+          "type": "string",
+          "description": "The skill level of the player (e.g., beginner, intermediate, advanced)."
+        },
+        "verifiedDocuments": {
+          "type": "string",
+          "description": "References to verified documents, such as certificates or transcripts."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "personalInformation",
+        "sport"
+      ]
+    },
+    "ClubProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ClubProfile",
+      "type": "object",
+      "description": "Represents a club's profile within the Sportlight application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ClubProfile entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:1 ClubProfile)"
+        },
+        "clubName": {
+          "type": "string",
+          "description": "The name of the club."
+        },
+        "criteriaForSelection": {
+          "type": "string",
+          "description": "The criteria the club uses for player selection."
+        },
+        "verificationDocuments": {
+          "type": "string",
+          "description": "References to verification documents for the club."
+        },
+        "sport": {
+          "type": "string",
+          "description": "The sport the club specializes in."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "clubName",
+        "criteriaForSelection",
+        "sport"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user within the Sportlight application.  This does NOT store authentication credentials.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        },
+        "userType": {
+          "type": "string",
+          "description": "Specifies whether the user is a 'player' or a 'club'."
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "userType"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user data, including email and user type (player or club). The 'userId' parameter corresponds to the Firebase Authentication UID.  This is used to link to PlayerProfile and ClubProfile documents.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user, matching the Firebase Authentication UID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "users/{userId}/playerProfiles/{profileId}",
+        "definition": {
+          "entityName": "PlayerProfile",
+          "schema": {
+            "$ref": "#/backend/entities/PlayerProfile"
+          },
+          "description": "Stores player profile information. Path-based ownership is enforced using the 'userId' parameter, which MUST match the Firebase Authentication UID. This enforces that only the authenticated user can create/read/update/delete their player profile.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user, matching the Firebase Authentication UID. Enforces ownership."
+            },
+            {
+              "name": "profileId",
+              "description": "The unique identifier for the player profile."
+            }
+          ]
+        }
+      },
+      {
+        "path": "users/{userId}/clubProfiles/{clubProfileId}",
+        "definition": {
+          "entityName": "ClubProfile",
+          "schema": {
+            "$ref": "#/backend/entities/ClubProfile"
+          },
+          "description": "Stores club profile information. Path-based ownership is enforced using the 'userId' parameter, which MUST match the Firebase Authentication UID.  This enforces that only the authenticated user can create/read/update/delete their club profile.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user, matching the Firebase Authentication UID. Enforces ownership."
+            },
+            {
+              "name": "clubProfileId",
+              "description": "The unique identifier for the club profile."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to store user data (profile information, credentials) and club information, optimized for secure access and efficient querying. User credentials will be managed by Firebase Authentication, while additional profile data will be stored in Firestore. The structure leverages path-based ownership for user profiles to simplify security rules and enable efficient data retrieval. Since the user's id from authentication is available as `request.auth.uid`, that value will be used to enforce ownership on the `PlayerProfile` and `ClubProfile` documents. This means no additional lookups or reads are needed to secure documents.\n\nThe structure uses structural segregation, where each collection contains documents with identical security needs. For example, `users/{userId}/playerProfiles/{profileId}` is distinct from `users/{userId}/clubProfiles/{clubProfileId}`. This segregation allows security rules to be focused and simplified, reducing the chance of vulnerabilities. List operations are secured via path-based ownership. Only the authenticated user can list the `PlayerProfile` or `ClubProfile` documents for their own user ID."
+  }
+}
