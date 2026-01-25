@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Sit-Up Counter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000000;
+        }
+        .video-mirror {
+            transform: scaleX(-1);
+        }
+        .neon-green {
+            color: #39FF14;
+        }
+        .neon-green-bg {
+            background-color: #39FF14;
+        }
+        .neon-glow {
+            text-shadow: 0 0 10px #39FF14, 0 0 20px #39FF14, 0 0 30px #39FF14;
+        }
+        .partial-glow {
+            text-shadow: 0 0 10px #FF6B00, 0 0 20px #FF6B00;
+            color: #FF6B00;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-black">
+    <div class="p-4 sm:p-8">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-3xl sm:text-4xl font-bold neon-green neon-glow mb-2 text-center">
+                AI SIT-UP COUNTER
+            </h1>
+            <p class="neon-green text-center mb-6 sm:mb-8 text-sm sm:text-base">
+                Position yourself so your full body is visible when lying down
+            </p>
+
+            <div class="bg-gray-900 border-2 border-green-500 rounded-2xl shadow-2xl p-4 sm:p-6 mb-6">
+                <!-- Video Feed -->
+                <div class="relative bg-black rounded-lg overflow-hidden mb-6 border-2 border-gray-700" style="height: 400px;">
+                    <video id="video" autoplay playsinline muted class="w-full h-full object-cover video-mirror"></video>
+                    <canvas id="canvas" class="hidden"></canvas>
+                    
+                    <div id="cameraPlaceholder" class="absolute inset-0 flex items-center justify-center bg-black">
+                        <div class="text-center p-4">
+                            <svg class="w-16 h-16 neon-green mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                            <p id="errorMessage" class="text-red-500 mb-4 hidden"></p>
+                            <p class="neon-green mb-4">Camera not initialized</p>
+                            <button id="enableCameraBtn" class="neon-green-bg text-black px-6 py-2 rounded-lg font-bold transition hover:opacity-80">
+                                ENABLE CAMERA
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Position Overlay -->
+                    <div id="positionOverlay" class="absolute top-4 left-4 bg-black bg-opacity-80 border-2 border-green-500 text-white px-4 py-2 rounded-lg hidden">
+                        <div class="text-sm neon-green font-bold">
+                            POSITION: <span id="positionText" class="uppercase">UNKNOWN</span>
+                        </div>
+                    </div>
+
+                    <!-- Debug Brightness -->
+                    <div id="debugOverlay" class="absolute top-4 right-4 bg-black bg-opacity-80 border-2 border-green-500 text-white px-4 py-2 rounded-lg hidden">
+                        <div class="text-xs neon-green font-mono">
+                            BRIGHTNESS: <span id="brightnessValue">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Dashboard -->
+                <div class="grid grid-cols-3 gap-2 sm:gap-4 mb-6">
+                    <div class="bg-black border-4 border-green-500 rounded-xl p-4 sm:p-6 text-center">
+                        <div id="countDisplay" class="text-4xl sm:text-6xl font-bold mb-1 sm:mb-2 neon-green neon-glow">0</div>
+                        <div class="text-xs sm:text-sm neon-green font-bold">FULL SIT-UPS</div>
+                    </div>
+                    <div class="bg-black border-4 border-green-500 rounded-xl p-4 sm:p-6 text-center">
+                        <div id="timerDisplay" class="text-4xl sm:text-6xl font-bold mb-1 sm:mb-2 neon-green neon-glow">30</div>
+                        <div class="text-xs sm:text-sm neon-green font-bold">SECONDS</div>
+                    </div>
+                    <div class="bg-black border-4 border-orange-500 rounded-xl p-4 sm:p-6 text-center">
+                        <div id="partialDisplay" class="text-4xl sm:text-6xl font-bold mb-1 sm:mb-2 partial-glow">0</div>
+                        <div class="text-xs sm:text-sm text-orange-500 font-bold">PARTIAL</div>
+                    </div>
+                </div>
+
+                <!-- Status -->
+                <div class="bg-black border-2 border-green-500 rounded-lg p-4 mb-6 text-center">
+                    <p id="statusText" class="text-base sm:text-xl font-bold neon-green neon-glow">CLICK "ENABLE CAMERA" TO START</p>
+                </div>
+
+                <!-- Controls -->
+                <div class="flex flex-wrap gap-3 sm:gap-4 justify-center">
+                    <button id="startBtn" class="hidden items-center gap-2 neon-green-bg text-black px-6 sm:px-8 py-3 rounded-lg font-bold transition hover:opacity-80">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
+                        </svg>
+                        START WORKOUT
+                    </button>
+                    <button id="stopBtn" class="hidden items-center gap-2 bg-red-600 text-white px-6 sm:px-8 py-3 rounded-lg font-bold transition hover:bg-red-700">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clip-rule="evenodd"/>
+                        </svg>
+                        STOP
+                    </button>
+                    <button id="resetBtn" class="flex items-center gap-2 bg-gray-700 text-white px-6 sm:px-8 py-3 rounded-lg font-bold transition hover:bg-gray-600">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        RESET
+                    </button>
+                </div>
+            </div>
+
+            <!-- Instructions -->
+            <div class="bg-gray-900 border-2 border-green-500 rounded-xl p-6">
+                <h2 class="text-xl font-bold mb-4 neon-green">INSTRUCTIONS</h2>
+                <ol class="space-y-2 text-sm neon-green">
+                    <li><strong>1.</strong> Click "ENABLE CAMERA" and allow camera access</li>
+                    <li><strong>2.</strong> Position camera to see your FULL body when lying down</li>
+                    <li><strong>3.</strong> Click "START WORKOUT" to begin 30-second timer</li>
+                    <li><strong>4.</strong> Perform COMPLETE sit-ups: LIE FLAT → SIT UP FULLY</li>
+                    <li><strong>5.</strong> FULL SIT-UPS counted | PARTIAL movements tracked separately</li>
+                </ol>
+                <div class="mt-4 p-3 bg-orange-900 bg-opacity-30 border border-orange-500 rounded-lg">
+                    <p class="text-xs sm:text-sm text-orange-400">
+                        <strong>IMPORTANT:</strong> The system requires you to lie COMPLETELY DOWN before sitting up. Half movements are counted as PARTIAL, not full sit-ups.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let video = document.getElementById('video');
+        let canvas = document.getElementById('canvas');
+        let ctx = canvas.getContext('2d');
+        let stream = null;
+        let isActive = false;
+        let count = 0;
+        let partialCount = 0;
+        let timeLeft = 30;
+        let cameraReady = false;
+        let animationId = null;
+        let timerId = null;
+        
+        let brightnessHistory = [];
+        let positionHistory = [];
+        const HISTORY_LENGTH = 10;
+        const DOWN_THRESHOLD = 130;
+        const UP_THRESHOLD = 100;
+        const STABILITY_FRAMES = 5;
+        
+        let state = {
+            currentPosition: 'unknown',
+            confirmedPosition: 'unknown',
+            stableFrames: 0,
+            waitingForDown: true,
+            inTransition: false,
+            lastCompleteRep: 0
+        };
+
+        const enableCameraBtn = document.getElementById('enableCameraBtn');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const cameraPlaceholder = document.getElementById('cameraPlaceholder');
+        const positionOverlay = document.getElementById('positionOverlay');
+        const debugOverlay = document.getElementById('debugOverlay');
+        const errorMessage = document.getElementById('errorMessage');
+        const statusText = document.getElementById('statusText');
+        const countDisplay = document.getElementById('countDisplay');
+        const partialDisplay = document.getElementById('partialDisplay');
+        const timerDisplay = document.getElementById('timerDisplay');
+        const positionText = document.getElementById('positionText');
+        const brightnessValue = document.getElementById('brightnessValue');
+
+        async function enableCamera() {
+            errorMessage.classList.add('hidden');
+            statusText.textContent = 'REQUESTING CAMERA ACCESS...';
+            
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { 
+                        facingMode: 'user',
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    },
+                    audio: false
+                });
+                
+                video.srcObject = stream;
+                
+                video.onloadedmetadata = () => {
+                    video.play();
+                    cameraReady = true;
+                    cameraPlaceholder.classList.add('hidden');
+                    positionOverlay.classList.remove('hidden');
+                    debugOverlay.classList.remove('hidden');
+                    enableCameraBtn.classList.add('hidden');
+                    startBtn.classList.remove('hidden');
+                    startBtn.classList.add('flex');
+                    statusText.textContent = 'CAMERA READY! POSITION YOURSELF AND CLICK START';
+                };
+            } catch (err) {
+                console.error('Camera error:', err);
+                cameraReady = false;
+                
+                let errorMsg = '';
+                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                    errorMsg = 'CAMERA PERMISSION DENIED. PLEASE ALLOW ACCESS.';
+                } else if (err.name === 'NotFoundError') {
+                    errorMsg = 'NO CAMERA FOUND. PLEASE CONNECT A CAMERA.';
+                } else if (err.name === 'NotReadableError') {
+                    errorMsg = 'CAMERA IN USE BY ANOTHER APPLICATION.';
+                } else {
+                    errorMsg = 'CAMERA ERROR: ' + err.message;
+                }
+                
+                errorMessage.textContent = errorMsg;
+                errorMessage.classList.remove('hidden');
+                statusText.textContent = 'CAMERA INITIALIZATION FAILED';
+            }
+        }
+
+        function average(arr) {
+            return arr.reduce((a, b) => a + b, 0) / arr.length;
+        }
+
+        function analyzePose() {
+            if (!cameraReady || video.readyState !== video.HAVE_ENOUGH_DATA) return;
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+            
+            const sampleWidth = canvas.width * 0.5;
+            const sampleHeight = canvas.height * 0.7;
+            const sampleX = canvas.width * 0.25;
+            const sampleY = canvas.height * 0.15;
+            
+            const imageData = ctx.getImageData(sampleX, sampleY, sampleWidth, sampleHeight);
+            
+            let brightness = 0;
+            for (let i = 0; i < imageData.data.length; i += 4) {
+                brightness += (imageData.data[i] + imageData.data[i + 1] + imageData.data[i + 2]) / 3;
+            }
+            brightness /= (imageData.data.length / 4);
+            
+            brightnessHistory.push(brightness);
+            if (brightnessHistory.length > HISTORY_LENGTH) {
+                brightnessHistory.shift();
+            }
+            
+            const smoothBrightness = average(brightnessHistory);
+            brightnessValue.textContent = Math.round(smoothBrightness);
+            
+            let detectedPosition;
+            if (smoothBrightness > DOWN_THRESHOLD) {
+                detectedPosition = 'down';
+            } else if (smoothBrightness < UP_THRESHOLD) {
+                detectedPosition = 'up';
+            } else {
+                detectedPosition = state.confirmedPosition;
+            }
+            
+            positionText.textContent = detectedPosition.toUpperCase();
+            positionText.className = detectedPosition === 'down' ? 'neon-green' : 'partial-glow';
+            
+            if (isActive) {
+                detectSitUp(detectedPosition);
+            }
+        }
+
+        function detectSitUp(detectedPosition) {
+            if (detectedPosition === state.currentPosition) {
+                state.stableFrames++;
+            } else {
+                state.currentPosition = detectedPosition;
+                state.stableFrames = 1;
+            }
+            
+            if (state.stableFrames >= STABILITY_FRAMES && detectedPosition !== state.confirmedPosition) {
+                const previousPosition = state.confirmedPosition;
+                state.confirmedPosition = detectedPosition;
+                
+                if (state.waitingForDown && detectedPosition === 'down') {
+                    state.waitingForDown = false;
+                    state.inTransition = true;
+                    statusText.textContent = 'LYING DOWN - NOW SIT UP COMPLETELY!';
+                    
+                } else if (!state.waitingForDown && detectedPosition === 'up' && previousPosition === 'down') {
+                    count++;
+                    countDisplay.textContent = count;
+                    state.waitingForDown = true;
+                    state.inTransition = false;
+                    state.lastCompleteRep = Date.now();
+                    statusText.textContent = '✓ FULL SIT-UP! LIE BACK DOWN FOR NEXT REP';
+                    
+                } else if (state.waitingForDown && detectedPosition === 'up') {
+                    partialCount++;
+                    partialDisplay.textContent = partialCount;
+                    statusText.textContent = '⚠ PARTIAL! LIE DOWN COMPLETELY FIRST';
+                }
+            }
+        }
+
+        function startWorkout() {
+            if (!cameraReady) return;
+            
+            isActive = true;
+            count = 0;
+            partialCount = 0;
+            timeLeft = 30;
+            countDisplay.textContent = '0';
+            partialDisplay.textContent = '0';
+            timerDisplay.textContent = '30';
+            statusText.textContent = 'START! LIE DOWN COMPLETELY!';
+            
+            state = {
+                currentPosition: 'unknown',
+                confirmedPosition: 'unknown',
+                stableFrames: 0,
+                waitingForDown: true,
+                inTransition: false,
+                lastCompleteRep: 0
+            };
+            
+            brightnessHistory = [];
+            
+            startBtn.classList.add('hidden');
+            stopBtn.classList.remove('hidden');
+            stopBtn.classList.add('flex');
+            
+            timerId = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = timeLeft;
+                
+                if (timeLeft <= 0) {
+                    stopWorkout();
+                }
+            }, 1000);
+            
+            function detect() {
+                if (isActive) {
+                    analyzePose();
+                    animationId = requestAnimationFrame(detect);
+                }
+            }
+            detect();
+        }
+
+        function stopWorkout() {
+            isActive = false;
+            statusText.textContent = `COMPLETE! ${count} FULL SIT-UPS | ${partialCount} PARTIAL`;
+            
+            stopBtn.classList.add('hidden');
+            startBtn.classList.remove('hidden');
+            startBtn.classList.add('flex');
+            
+            if (timerId) {
+                clearInterval(timerId);
+                timerId = null;
+            }
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+        }
+
+        function reset() {
+            stopWorkout();
+            count = 0;
+            partialCount = 0;
+            timeLeft = 30;
+            countDisplay.textContent = '0';
+            partialDisplay.textContent = '0';
+            timerDisplay.textContent = '30';
+            statusText.textContent = cameraReady ? 'READY TO START!' : 'CLICK "ENABLE CAMERA" TO START';
+            positionText.textContent = 'UNKNOWN';
+            brightnessValue.textContent = '0';
+            
+            state = {
+                currentPosition: 'unknown',
+                confirmedPosition: 'unknown',
+                stableFrames: 0,
+                waitingForDown: true,
+                inTransition: false,
+                lastCompleteRep: 0
+            };
+            
+            brightnessHistory = [];
+        }
+
+        enableCameraBtn.addEventListener('click', enableCamera);
+        startBtn.addEventListener('click', startWorkout);
+        stopBtn.addEventListener('click', stopWorkout);
+        resetBtn.addEventListener('click', reset);
+
+        window.addEventListener('beforeunload', () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+        });
+    </script>
+</body>
+</html>
