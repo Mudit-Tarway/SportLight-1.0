@@ -1,8 +1,14 @@
 import Player from "../models/player.js";
+import User from "../models/user.js";
 
 export const getMyProfile = async (req, res) => {
   try {
     const player = await Player.findById(req.user.profileId);
+
+    if (!player) {
+      return res.status(404).json({ message: "Player profile not found" });
+    }
+
     res.status(200).json(player);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -18,15 +24,19 @@ export const updatePlayer = async (req, res) => {
     if (req.file) {
       data.achievementsImage = `/uploads/${req.file.filename}`;
     }
-    if (
-      data.name &&
-      data.sport &&
-      data.mobile &&
-      data.age &&
-      data.performanceData?.length > 0
-    ) {
-      data.profileCompleted = true;
+    const existingPlayer = await Player.findById(req.user.profileId);
+
+    if (!existingPlayer) {
+      return res.status(404).json({ message: "Player profile not found" });
     }
+    const isProfileCompleted =
+      (data.name || existingPlayer.name) &&
+      (data.sport || existingPlayer.sport) &&
+      (data.mobile || existingPlayer.mobile) &&
+      (data.age || existingPlayer.age) &&
+      ((data.performanceData || existingPlayer.performanceData)?.length > 0);
+
+    data.profileCompleted = isProfileCompleted;
 
     const updated = await Player.findByIdAndUpdate(
       req.user.profileId,
@@ -45,21 +55,25 @@ export const updatePlayer = async (req, res) => {
   }
 };
 
-import Player from "../models/player.js";
-import User from "../models/user.js";
-
 export const deleteMyProfile = async (req, res) => {
   try {
+    const player = await Player.findById(req.user.profileId);
+    if (!player) {
+      return res.status(404).json({ message: "Player not found" });
+    }
     await Player.findByIdAndDelete(req.user.profileId);
+
+    // Delete user account
     await User.findByIdAndDelete(req.user.userId);
 
     res.status(200).json({
-      message: "Player profile and account deleted successfully"
+      message: "Player profile and account deleted successfully",
     });
+
   } catch (error) {
     res.status(500).json({
       message: "Failed to delete player",
-      error: error.message
+      error: error.message,
     });
   }
 };
