@@ -27,9 +27,9 @@ export const getMyProfile = async (req, res) => {
 export const updatePlayer = async (req, res) => {
   try {
     const data = { ...req.body };
-    if (data.performanceData) {
-      data.performanceData = JSON.parse(data.performanceData);
-    }
+    // if (data.performanceData) {
+    //   data.performanceData = JSON.parse(data.performanceData);
+    // }
     if (req.file) {
       data.achievementsImage = `/uploads/${req.file.filename}`;
     }
