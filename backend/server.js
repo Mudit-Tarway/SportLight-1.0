@@ -3,7 +3,6 @@ import cors from "cors";
 import dotenv from "dotenv";
 import connectDB from "./config/db.js";
 import path from "path";
-
 import authRoutes from "./routes/auth.routes.js";
 import playerRoutes from "./routes/player.routes.js";
 import clubRoutes from "./routes/club.routes.js";

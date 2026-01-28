@@ -5,7 +5,7 @@ const userSchema = new mongoose.Schema({
   name: String,
   email: { type: String, unique: true },
   password: String,
-  role: { type: String, enum: ["player", "recruiter"] },
+  role: { type: String, enum: ["player", "club"] },
   profileId: { type: mongoose.Schema.Types.ObjectId },
 });
 

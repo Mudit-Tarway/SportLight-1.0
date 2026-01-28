@@ -1,9 +1,10 @@
 import express from "express";
 import { protect } from "../middleware/auth.middleware.js";
-import { getMyClub, updateClub } from "../controllers/club.controller.js";
+import { getClubs, getMyClub, updateClub } from "../controllers/club.controller.js";
 import { upload } from "../utils/upload.js";
 
 const router = express.Router();
+router.get("/", getClubs);
 router.get("/me", protect, getMyClub);
 
 router.put(

@@ -1,6 +1,15 @@
 import Player from "../models/player.js";
 import User from "../models/user.js";
 
+export const getPlayers = async (req, res) => {
+  try {
+    const players = await Player.find();
+    res.status(200).json(players);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const getMyProfile = async (req, res) => {
   try {
     const player = await Player.findById(req.user.profileId);
