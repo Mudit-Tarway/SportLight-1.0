@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Header } from "@/components/layout/header";
 import { MainSidebar } from "@/components/layout/main-sidebar";
-import { Chatbot } from "@/components/chatbot/chatbot";
+import Chatbot from "@/components/chatbot/chatbot";
 import { PlayersProvider } from "@/hooks/use-players";
 import { ClubsProvider } from "@/hooks/use-clubs";
 

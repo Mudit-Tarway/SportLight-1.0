@@ -1,132 +1,103 @@
-'use client';
+"use client";
 
-import { useState, useRef, useEffect, useActionState } from 'react';
-import { useFormStatus } from 'react-dom';
-import { handleChat } from '@/lib/actions';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Bot, Send, User, MessageSquarePlus } from 'lucide-react';
-import { ScrollArea } from '../ui/scroll-area';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { cn } from '@/lib/utils';
+import { useState } from "react";
 
 type Message = {
-  sender: 'user' | 'bot';
+  role: "user" | "bot";
   text: string;
 };
 
-const initialState = {
-  response: null,
-  error: null,
-};
-
-function ChatSubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" size="icon" disabled={pending}>
-      <Send className="h-4 w-4" />
-      <span className="sr-only">Send</span>
-    </Button>
-  );
-}
-
-export function Chatbot() {
+export default function ChatBot() {
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [state, formAction] = useActionState(handleChat, initialState);
-  const formRef = useRef<HTMLFormElement>(null);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [messages, setMessages] = useState<Message[]>([
+    { role: "bot", text: "Hi! I'm SportLight AI 🌿 Ask me about sports." },
+  ]);
+  const [input, setInput] = useState("");
 
-  useEffect(() => {
-    if (state.response) {
-      setMessages((prev) => [...prev, { sender: 'bot', text: state.response as string }]);
-    }
-    // We don't handle state.error here, but you could show a toast.
-  }, [state]);
+  const getBotResponse = (message: string): string => {
+    const msg = message.toLowerCase();
 
-  useEffect(() => {
-    if (scrollAreaRef.current) {
-        const viewport = scrollAreaRef.current.querySelector('div[data-radix-scroll-area-viewport]');
-        if (viewport) {
-            viewport.scrollTop = viewport.scrollHeight;
-        }
+    if (msg.includes("pm modi")) {
+      return "Narendra Modi is the Prime Minister of India since 2014.";
+    } else if (msg.includes("virat kohli")) {
+      return "Virat Kohli is a famous Indian cricketer and former captain of the Indian national team.";
+    } else if (msg.includes("most famous sport") || msg.includes("popular sport")) {
+      return "Cricket is the most popular sport in India.";
+    } else if (msg.includes("hello") || msg.includes("hi")) {
+      return "Hello! How can I assist you with sports today?";
+    } else {
+      return "Sorry, I don't have an answer for that yet. Ask me about sports!";
     }
-  }, [messages]);
+  };
 
-  const handleFormSubmit = (formData: FormData) => {
-    const query = formData.get('query') as string;
-    if (query.trim()) {
-      setMessages((prev) => [...prev, { sender: 'user', text: query }]);
-      formAction(formData);
-      formRef.current?.reset();
-    }
+  const sendMessage = () => {
+    if (!input.trim()) return;
+
+    const userMessage = input;
+    setMessages((prev) => [...prev, { role: "user", text: userMessage }]);
+    setInput("");
+
+    const botReply = getBotResponse(userMessage);
+
+    setTimeout(() => {
+      setMessages((prev) => [...prev, { role: "bot", text: botReply }]);
+    }, 600);
   };
 
   return (
     <>
-      <Button 
-        size="icon" 
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl z-40"
+      {/* Floating Chat Icon */}
+      <button
         onClick={() => setOpen(true)}
-        aria-label="Open Chatbot"
+        className="fixed bottom-5 right-5 z-50 w-14 h-14 rounded-full bg-green-600 text-white shadow-lg flex items-center justify-center text-2xl hover:bg-green-700"
       >
-        <MessageSquarePlus className="h-7 w-7" />
-      </Button>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent className="flex flex-col p-0">
-          <SheetHeader className="p-6 pb-2">
-            <SheetTitle className="font-headline flex items-center gap-2">
-              <Bot /> AI Assistant
-            </SheetTitle>
-          </SheetHeader>
-          <ScrollArea className="flex-1 px-6" ref={scrollAreaRef}>
-            <div className="space-y-6 py-4">
-              <div className="flex items-start gap-3">
-                <Avatar className="w-8 h-8 border-2 border-primary">
-                    <AvatarFallback><Bot size={16}/></AvatarFallback>
-                </Avatar>
-                <div className="bg-muted rounded-lg p-3 max-w-[80%]">
-                    <p className="text-sm">Hello! I'm the Sportlight AI assistant. How can I help you today?</p>
-                </div>
-              </div>
+        💬
+      </button>
 
-              {messages.map((message, index) => (
-                <div key={index} className={cn("flex items-start gap-3", message.sender === 'user' && 'justify-end')}>
-                  {message.sender === 'bot' && (
-                    <Avatar className="w-8 h-8 border-2 border-primary">
-                        <AvatarFallback><Bot size={16}/></AvatarFallback>
-                    </Avatar>
-                  )}
-                  <div className={cn(
-                    "rounded-lg p-3 max-w-[80%]",
-                    message.sender === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                  )}>
-                    <p className="text-sm">{message.text}</p>
-                  </div>
-                   {message.sender === 'user' && (
-                    <Avatar className="w-8 h-8">
-                        <AvatarFallback><User size={16}/></AvatarFallback>
-                    </Avatar>
-                  )}
-                </div>
-              ))}
-            </div>
-          </ScrollArea>
-          <div className="p-4 bg-background border-t">
-            <form
-              ref={formRef}
-              action={handleFormSubmit}
-              className="flex items-center gap-2"
-            >
-              <Input name="query" placeholder="Ask a question..." autoComplete="off" />
-              <ChatSubmitButton />
-            </form>
+      {/* Chat Window */}
+      {open && (
+        <div className="fixed inset-0 md:inset-auto md:bottom-20 md:right-5 md:w-96 md:h-[520px] bg-green-50 text-black z-50 shadow-2xl rounded-none md:rounded-xl flex flex-col">
+
+          {/* Header */}
+          <div className="flex justify-between items-center p-4 bg-green-600 text-white rounded-t-md">
+            <span className="font-semibold">SportLight AI</span>
+            <button onClick={() => setOpen(false)}>✖</button>
           </div>
-        </SheetContent>
-      </Sheet>
+
+          {/* Messages */}
+          <div className="flex-1 p-4 overflow-y-auto space-y-2 text-sm">
+            {messages.map((m, i) => (
+              <div
+                key={i}
+                className={`p-3 rounded-lg max-w-[80%] text-black ${
+                  m.role === "user"
+                    ? "bg-green-300 ml-auto"
+                    : "bg-green-100 mr-auto"
+                }`}
+              >
+                {m.text}
+              </div>
+            ))}
+          </div>
+
+          {/* Input */}
+          <div className="p-3 border-t flex gap-2 bg-green-50">
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+              className="flex-1 border rounded px-3 py-2 text-sm text-black placeholder-green-600 focus:outline-none"
+              placeholder="Ask about sports..."
+            />
+            <button
+              onClick={sendMessage}
+              className="bg-green-600 text-white px-4 rounded hover:bg-green-700"
+            >
+              Send
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }
-
-    
