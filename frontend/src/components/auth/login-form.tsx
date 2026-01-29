@@ -1,3 +1,5 @@
+
+
 "use client";
 
 import {
@@ -163,18 +165,6 @@ export function LoginForm() {
     
     setTimeout(() => {
         router.push("/dashboard");
-    }, 1500);
-  };
-
-  const handleGoogleSignIn = () => {
-    const roleName = role === 'player' ? 'Player' : 'Recruiter';
-    localStorage.setItem('userRole', role);
-    toast({
-      title: `Signed In with Google as ${roleName}`,
-      description: `Redirecting you to the dashboard...`,
-    });
-    setTimeout(() => {
-      router.push("/dashboard");
     }, 1500);
   };
 
@@ -386,5 +376,3 @@ export function LoginForm() {
     </Card>
   );
 }
-
-    
