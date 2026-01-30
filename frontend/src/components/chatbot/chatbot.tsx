@@ -13,35 +13,54 @@ export default function ChatBot() {
     { role: "bot", text: "Hi! I'm SportLight AI 🌿 Ask me about sports." },
   ]);
   const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const getBotResponse = (message: string): string => {
-    const msg = message.toLowerCase();
-
-    if (msg.includes("pm modi")) {
-      return "Narendra Modi is the Prime Minister of India since 2014.";
-    } else if (msg.includes("virat kohli")) {
-      return "Virat Kohli is a famous Indian cricketer and former captain of the Indian national team.";
-    } else if (msg.includes("most famous sport") || msg.includes("popular sport")) {
-      return "Cricket is the most popular sport in India.";
-    } else if (msg.includes("hello") || msg.includes("hi")) {
-      return "Hello! How can I assist you with sports today?";
-    } else {
-      return "Sorry, I don't have an answer for that yet. Ask me about sports!";
-    }
-  };
-
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (!input.trim()) return;
 
     const userMessage = input;
-    setMessages((prev) => [...prev, { role: "user", text: userMessage }]);
     setInput("");
 
-    const botReply = getBotResponse(userMessage);
+    setMessages((prev) => [...prev, { role: "user", text: userMessage }]);
+    setLoading(true);
 
-    setTimeout(() => {
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.NEXT_PUBLIC_GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    text: `You are SportLight AI, an assistant focused on sports. Answer briefly.\nUser: ${userMessage}`,
+                  },
+                ],
+              },
+            ],
+          }),
+        }
+      );
+
+      const data = await res.json();
+
+      const botReply =
+        data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+        "Sorry, I couldn't understand that.";
+
       setMessages((prev) => [...prev, { role: "bot", text: botReply }]);
-    }, 600);
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        { role: "bot", text: "⚠️ Something went wrong. Try again." },
+      ]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -69,7 +88,7 @@ export default function ChatBot() {
             {messages.map((m, i) => (
               <div
                 key={i}
-                className={`p-3 rounded-lg max-w-[80%] text-black ${
+                className={`p-3 rounded-lg max-w-[80%] ${
                   m.role === "user"
                     ? "bg-green-300 ml-auto"
                     : "bg-green-100 mr-auto"
@@ -78,6 +97,12 @@ export default function ChatBot() {
                 {m.text}
               </div>
             ))}
+
+            {loading && (
+              <div className="bg-green-100 mr-auto p-3 rounded-lg max-w-[80%]">
+                Typing...
+              </div>
+            )}
           </div>
 
           {/* Input */}
@@ -92,6 +117,7 @@ export default function ChatBot() {
             <button
               onClick={sendMessage}
               className="bg-green-600 text-white px-4 rounded hover:bg-green-700"
+              disabled={loading}
             >
               Send
             </button>
