@@ -3,7 +3,6 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/theme-provider";
-import ChatBot from "@/components/chatbot/chatbot";
 
 export const metadata: Metadata = {
   title: "Sportlight",
@@ -32,7 +31,6 @@ export default function RootLayout({
       <body className={cn("font-body antialiased")}>
         <ThemeProvider defaultTheme="dark" storageKey="ui-theme">
           {children}
-          <ChatBot />
           <Toaster />
         </ThemeProvider>
       </body>
